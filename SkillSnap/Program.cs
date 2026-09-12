@@ -1,7 +1,12 @@
+using Microsoft.EntityFrameworkCore;
+using SkillSnap;
 using SkillSnap.Client.Pages;
 using SkillSnap.Components;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<SkillSnapContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
