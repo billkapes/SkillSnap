@@ -5,14 +5,17 @@ using SkillSnap.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<SkillSnapContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException(
+        "Connection string 'DefaultConnection' was not found.");
 
-// Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveWebAssemblyComponents();
+builder.Services.AddDbContext<SkillSnapContext>(options =>
+    options.UseSqlite(connectionString));
 
 builder.Services.AddControllers();
+
+builder.Services.AddRazorComponents()
+    .AddInteractiveWebAssemblyComponents();
 
 var app = builder.Build();
 

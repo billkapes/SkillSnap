@@ -1,0 +1,22 @@
+<section class="card profile-card">
+    <div class="card-body text-center">
+        <img class="rounded-circle mb-3"
+             src="@ProfilePicture"
+             alt="@($"Profile picture of {Name}")"
+             width="96"
+             height="96" />
+        <h2 class="card-title h4">@Name</h2>
+        <p class="card-text text-muted">@Bio</p>
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public string Name { get; set; } = "Alex Morgan";
+
+    [Parameter]
+    public string Bio { get; set; } = "Full-stack developer building thoughtful digital experiences.";
+
+    [Parameter]
+    public string ProfilePicture { get; set; } = "https://placehold.co/96x96?text=AM";
+}

@@ -1,0 +1,24 @@
+<section class="skill-tags">
+    <h2 class="h4">Skills</h2>
+
+    <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0">
+        @foreach (var skill in Skills)
+        {
+            <li>
+                <span class="badge text-bg-primary">@skill</span>
+            </li>
+        }
+    </ul>
+</section>
+
+@code {
+    private readonly string[] Skills =
+    [
+        "C#",
+        "Blazor",
+        "ASP.NET Core",
+        "Entity Framework Core",
+        "SQL",
+        "Azure"
+    ];
+}

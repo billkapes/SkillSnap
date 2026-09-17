@@ -1,0 +1,24 @@
+<section class="project-list">
+    <h2 class="h4">Projects</h2>
+
+    <div class="list-group">
+        @foreach (var project in Projects)
+        {
+            <article class="list-group-item">
+                <h3 class="h5 mb-1">@project.Name</h3>
+                <p class="mb-0 text-muted">@project.Description</p>
+            </article>
+        }
+    </div>
+</section>
+
+@code {
+    private readonly List<ProjectPlaceholder> Projects =
+    [
+        new("SkillSnap", "A portfolio for sharing skills and projects."),
+        new("TaskFlow", "A lightweight planner for focused teams."),
+        new("GreenCart", "A simple shopping experience for local produce.")
+    ];
+
+    private sealed record ProjectPlaceholder(string Name, string Description);
+}
