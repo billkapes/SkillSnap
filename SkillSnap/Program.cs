@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SkillSnap;
+using SkillSnap.Client.Services;
 using SkillSnap.Client.Pages;
 using SkillSnap.Components;
 
@@ -13,6 +14,20 @@ builder.Services.AddDbContext<SkillSnapContext>(options =>
     options.UseSqlite(connectionString));
 
 builder.Services.AddControllers();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<HttpClient>(serviceProvider =>
+{
+    var httpContext = serviceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext
+        ?? throw new InvalidOperationException("An active HTTP request is required.");
+
+    return new HttpClient
+    {
+        BaseAddress = new Uri($"{httpContext.Request.Scheme}://{httpContext.Request.Host}/")
+    };
+});
+builder.Services.AddScoped<ProjectService>();
+builder.Services.AddScoped<SkillService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();

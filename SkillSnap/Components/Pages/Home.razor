@@ -1,7 +1,20 @@
 ﻿@page "/"
+@using SkillSnap.Client
 
-<PageTitle>Home</PageTitle>
+<PageTitle>SkillSnap Preview</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container py-4">
+	<h1 class="mb-4">SkillSnap Preview</h1>
 
-Welcome to your new app.
+	<div class="row g-4">
+		<div class="col-12 col-lg-4">
+			<ProfileCard />
+		</div>
+		<div class="col-12 col-lg-8">
+			<ProjectList />
+		</div>
+		<div class="col-12">
+			<SkillTags />
+		</div>
+	</div>
+</div>

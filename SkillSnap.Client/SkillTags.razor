@@ -1,3 +1,5 @@
+@using SkillSnap.Client.Models
+@using SkillSnap.Client.Services
 <section class="skill-tags">
     <h2 class="h4">Skills</h2>
 
@@ -5,20 +7,19 @@
         @foreach (var skill in Skills)
         {
             <li>
-                <span class="badge text-bg-primary">@skill</span>
+                <span class="badge text-bg-primary">@skill.Name</span>
             </li>
         }
     </ul>
 </section>
 
+@inject SkillService SkillService
 @code {
-    private readonly string[] Skills =
-    [
-        "C#",
-        "Blazor",
-        "ASP.NET Core",
-        "Entity Framework Core",
-        "SQL",
-        "Azure"
-    ];
+    private List<Skill> Skills = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Skills = await SkillService.GetSkillsAsync();
+    }
 }
+       
