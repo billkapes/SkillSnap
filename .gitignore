@@ -484,3 +484,5 @@ $RECYCLE.BIN/
 SkillSnap/SkillSnap.db
 
 SkillSnap/Migrations
+SkillSnap/SkillSnap.db-shm
+SkillSnap/SkillSnap.db-wal

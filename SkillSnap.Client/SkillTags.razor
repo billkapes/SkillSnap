@@ -3,6 +3,34 @@
 <section class="skill-tags">
     <h2 class="h4">Skills</h2>
 
+    <EditForm Model="NewSkill" OnValidSubmit="AddSkillAsync" FormName="add-skill" class="mb-4">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label for="skill-name" class="form-label">Name</label>
+                <InputText id="skill-name" class="form-control" @bind-Value="NewSkill.Name" />
+            </div>
+            <div class="col-md-3">
+                <label for="skill-level" class="form-label">Level</label>
+                <InputText id="skill-level" class="form-control" @bind-Value="NewSkill.Level" />
+            </div>
+            <div class="col-md-3">
+                <label for="portfolio-user-id" class="form-label">Portfolio user ID</label>
+                <InputNumber id="portfolio-user-id" class="form-control" @bind-Value="NewSkill.PortfolioUserId" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100" disabled="@IsSubmitting">
+                    @(IsSubmitting ? "Adding..." : "Add skill")
+                </button>
+            </div>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(StatusMessage))
+        {
+            <div class="alert @(RequestSucceeded ? "alert-success" : "alert-danger") mt-3 mb-0" role="status">
+                @StatusMessage
+            </div>
+        }
+    </EditForm>
+
     <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0">
         @foreach (var skill in Skills)
         {
@@ -16,10 +44,45 @@
 @inject SkillService SkillService
 @code {
     private List<Skill> Skills = [];
+    private Skill NewSkill = new() { PortfolioUserId = 1 };
+    private bool IsSubmitting;
+    private bool RequestSucceeded;
+    private string StatusMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         Skills = await SkillService.GetSkillsAsync();
+    }
+
+    private async Task AddSkillAsync()
+    {
+        IsSubmitting = true;
+        StatusMessage = string.Empty;
+
+        try
+        {
+            var addedSkill = await SkillService.AddSkillAsync(NewSkill);
+            if (addedSkill is null)
+            {
+                RequestSucceeded = false;
+                StatusMessage = "The skill was not returned by the API.";
+                return;
+            }
+
+            Skills.Add(addedSkill);
+            NewSkill = new() { PortfolioUserId = 1 };
+            RequestSucceeded = true;
+            StatusMessage = "Skill added successfully.";
+        }
+        catch (HttpRequestException)
+        {
+            RequestSucceeded = false;
+            StatusMessage = "The POST request failed. Check the API and try again.";
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
     }
 }
        

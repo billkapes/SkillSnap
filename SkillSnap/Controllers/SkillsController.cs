@@ -24,6 +24,11 @@ public class SkillsController : ControllerBase
 	[HttpPost]
 	public async Task<ActionResult<Skill>> AddSkill(Skill skill)
 	{
+		if (!await _context.PortfolioUsers.AnyAsync(user => user.Id == skill.PortfolioUserId))
+		{
+			return BadRequest($"Portfolio user {skill.PortfolioUserId} does not exist.");
+		}
+
 		_context.Skills.Add(skill);
 		await _context.SaveChangesAsync();
 
