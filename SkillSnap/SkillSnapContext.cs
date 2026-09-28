@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using SkillSnap.Models;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -14,7 +15,7 @@ public class SkillSnapContextFactory : IDesignTimeDbContextFactory<SkillSnapCont
     }
 }
 
-public class SkillSnapContext : DbContext
+public class SkillSnapContext : IdentityDbContext<ApplicationUser>
 {
     public SkillSnapContext(DbContextOptions<SkillSnapContext> options)
         : base(options)

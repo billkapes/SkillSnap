@@ -1,5 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using SkillSnap;
+using SkillSnap.Models;
 using SkillSnap.Client.Services;
 using SkillSnap.Client.Pages;
 using SkillSnap.Components;
@@ -12,6 +17,42 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<SkillSnapContext>(options =>
     options.UseSqlite(connectionString));
+
+builder.Services.AddIdentityCore<ApplicationUser>(options =>
+    {
+        options.User.RequireUniqueEmail = true;
+        options.Password.RequiredLength = 12;
+        options.Password.RequireDigit = false;
+        options.Password.RequireLowercase = false;
+        options.Password.RequireUppercase = false;
+        options.Password.RequireNonAlphanumeric = false;
+    })
+    .AddEntityFrameworkStores<SkillSnapContext>();
+
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
+    throw new InvalidOperationException("Configure Jwt:Key with a signing key of at least 32 bytes.");
+}
+
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "SkillSnap";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "SkillSnap";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ValidateLifetime = true
+        };
+    });
+builder.Services.AddAuthorization();
 
 builder.Services.AddControllers();
 
@@ -60,6 +101,8 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowClient");
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapControllers().DisableAntiforgery();
