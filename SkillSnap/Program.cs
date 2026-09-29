@@ -27,6 +27,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
         options.Password.RequireUppercase = false;
         options.Password.RequireNonAlphanumeric = false;
     })
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<SkillSnapContext>();
 
 var jwtKey = builder.Configuration["Jwt:Key"];
@@ -69,6 +70,7 @@ builder.Services.AddScoped<HttpClient>(serviceProvider =>
 });
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<SkillService>();
+builder.Services.AddScoped<AuthService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();

@@ -73,6 +73,9 @@ public class AuthController : ControllerBase
             new(ClaimTypes.NameIdentifier, user.Id)
         };
 
+        var roles = await _userManager.GetRolesAsync(user);
+        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
         if (!string.IsNullOrWhiteSpace(user.Email))
         {
             claims.Add(new Claim(JwtRegisteredClaimNames.Email, user.Email));

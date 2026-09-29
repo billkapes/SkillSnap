@@ -1,0 +1,51 @@
+@rendermode InteractiveWebAssembly
+@implements IDisposable
+@using SkillSnap.Client.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+@if (AuthService.IsAuthenticated)
+{
+    <div class="nav-item px-3">
+        <button class="nav-link btn btn-link" @onclick="LogoutAsync">Log out</button>
+    </div>
+}
+else
+{
+    <div class="nav-item px-3">
+        <NavLink class="nav-link" href="login">Log in</NavLink>
+    </div>
+    <div class="nav-item px-3">
+        <NavLink class="nav-link" href="register">Register</NavLink>
+    </div>
+}
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        AuthService.AuthStateChanged += OnAuthStateChanged;
+        await AuthService.InitializeAsync();
+        StateHasChanged();
+    }
+
+    private async Task LogoutAsync()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/");
+    }
+
+    private void OnAuthStateChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AuthService.AuthStateChanged -= OnAuthStateChanged;
+    }
+}
