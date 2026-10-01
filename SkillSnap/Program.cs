@@ -87,6 +87,57 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+if (app.Environment.IsDevelopment())
+{
+    var adminEmail = app.Configuration["DevelopmentAdmin:Email"];
+    var adminPassword = app.Configuration["DevelopmentAdmin:Password"];
+
+    if (string.IsNullOrWhiteSpace(adminEmail) != string.IsNullOrWhiteSpace(adminPassword))
+    {
+        throw new InvalidOperationException(
+            "Configure both DevelopmentAdmin:Email and DevelopmentAdmin:Password to seed a test admin.");
+    }
+
+    if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
+    {
+        await using var scope = app.Services.CreateAsyncScope();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        if (!await roleManager.RoleExistsAsync("Admin"))
+        {
+            var roleResult = await roleManager.CreateAsync(new IdentityRole("Admin"));
+            if (!roleResult.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    $"Could not create Admin role: {string.Join(", ", roleResult.Errors.Select(error => error.Description))}");
+            }
+        }
+
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+        if (adminUser is null)
+        {
+            adminUser = new ApplicationUser { UserName = adminEmail, Email = adminEmail };
+            var userResult = await userManager.CreateAsync(adminUser, adminPassword);
+            if (!userResult.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    $"Could not create development admin: {string.Join(", ", userResult.Errors.Select(error => error.Description))}");
+            }
+        }
+
+        if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
+        {
+            var assignmentResult = await userManager.AddToRoleAsync(adminUser, "Admin");
+            if (!assignmentResult.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    $"Could not assign Admin role: {string.Join(", ", assignmentResult.Errors.Select(error => error.Description))}");
+            }
+        }
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
