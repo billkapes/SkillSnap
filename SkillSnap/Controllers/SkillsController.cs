@@ -19,7 +19,9 @@ public class SkillsController : ControllerBase
 	[HttpGet]
 	public async Task<ActionResult<IEnumerable<Skill>>> GetSkills()
 	{
-		return await _context.Skills.ToListAsync();
+		return await _context.Skills
+			.AsNoTracking()
+			.ToListAsync();
 	}
 
 	[HttpPost]

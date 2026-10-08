@@ -11,14 +11,19 @@ public sealed class AuthService
 
     private readonly HttpClient _httpClient;
     private readonly IJSRuntime _jsRuntime;
+    private readonly UserSessionService _userSession;
     private readonly SemaphoreSlim _initializeLock = new(1, 1);
     private bool _initialized;
     private ClaimsPrincipal _currentUser = new(new ClaimsIdentity());
 
-    public AuthService(HttpClient httpClient, IJSRuntime jsRuntime)
+    public AuthService(
+        HttpClient httpClient,
+        IJSRuntime jsRuntime,
+        UserSessionService userSession)
     {
         _httpClient = httpClient;
         _jsRuntime = jsRuntime;
+        _userSession = userSession;
     }
 
     public event Action? AuthStateChanged;
@@ -46,6 +51,7 @@ public sealed class AuthService
             if (!string.IsNullOrWhiteSpace(token) && TryCreatePrincipal(token, out var principal))
             {
                 _currentUser = principal;
+                UpdateUserSession(principal);
             }
             else if (!string.IsNullOrWhiteSpace(token))
             {
@@ -82,6 +88,7 @@ public sealed class AuthService
 
         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", AccessTokenStorageKey, result.AccessToken);
         _currentUser = principal;
+        UpdateUserSession(principal);
         AuthStateChanged?.Invoke();
         return AuthResult.Success();
     }
@@ -103,7 +110,15 @@ public sealed class AuthService
     {
         await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", AccessTokenStorageKey);
         _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
+        _userSession.Clear();
         AuthStateChanged?.Invoke();
+    }
+
+    private void UpdateUserSession(ClaimsPrincipal principal)
+    {
+        _userSession.SetUser(
+            principal.FindFirst(ClaimTypes.NameIdentifier)?.Value,
+            principal.FindFirst(ClaimTypes.Role)?.Value);
     }
 
     private static bool TryCreatePrincipal(string token, out ClaimsPrincipal principal)

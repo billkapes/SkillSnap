@@ -2,6 +2,7 @@
 @implements IDisposable
 @using SkillSnap.Client.Services
 @inject AuthService AuthService
+@inject UserSessionService UserSession
 @inject NavigationManager Navigation
 
 @if (AuthService.IsAuthenticated)
@@ -9,6 +10,12 @@
     <div class="nav-item px-3">
         <button class="nav-link btn btn-link" @onclick="LogoutAsync">Log out</button>
     </div>
+    @if (!string.IsNullOrWhiteSpace(UserSession.Role))
+    {
+        <div class="nav-item px-3">
+            <span class="nav-link">Role: @UserSession.Role</span>
+        </div>
+    }
 }
 else
 {

@@ -71,6 +71,7 @@ builder.Services.AddScoped<HttpClient>(serviceProvider =>
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<SkillService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<UserSessionService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
@@ -84,6 +85,8 @@ builder.Services.AddCors(options =>
     .AllowAnyHeader();
     });
 });
+
+builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 
