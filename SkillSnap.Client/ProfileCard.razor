@@ -1,22 +1,31 @@
+@using SkillSnap.Client.Models
+
 <section class="card profile-card">
     <div class="card-body text-center">
-        <img class="rounded-circle mb-3"
-             src="@ProfilePicture"
-             alt="@($"Profile picture of {Name}")"
-             width="96"
-             height="96" />
-        <h2 class="card-title h4">@Name</h2>
-        <p class="card-text text-muted">@Bio</p>
+        @if (Profile is not null)
+        {
+            @if (!string.IsNullOrWhiteSpace(Profile.ProfileImageUrl))
+            {
+                <img class="rounded-circle mb-3"
+                     src="@Profile.ProfileImageUrl"
+                     alt="@($"Profile picture of {Profile.Name}")"
+                     width="96"
+                     height="96" />
+            }
+            <h2 class="card-title h4">@Profile.Name</h2>
+            @if (!string.IsNullOrWhiteSpace(Profile.Bio))
+            {
+                <p class="card-text text-muted">@Profile.Bio</p>
+            }
+        }
+        else
+        {
+            <p class="card-text text-muted">No profile available.</p>
+        }
     </div>
 </section>
 
 @code {
     [Parameter]
-    public string Name { get; set; } = "Alex Morgan";
-
-    [Parameter]
-    public string Bio { get; set; } = "Full-stack developer building thoughtful digital experiences.";
-
-    [Parameter]
-    public string ProfilePicture { get; set; } = "https://placehold.co/96x96?text=AM";
+    public PortfolioUser? Profile { get; set; }
 }

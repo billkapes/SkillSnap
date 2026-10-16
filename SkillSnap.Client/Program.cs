@@ -19,6 +19,7 @@ builder.Services.AddScoped(sp =>
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<SkillService>();
+builder.Services.AddScoped<PortfolioUserService>();
 builder.Services.AddScoped<UserSessionService>();
 
 await builder.Build().RunAsync();

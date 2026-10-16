@@ -70,6 +70,7 @@ builder.Services.AddScoped<HttpClient>(serviceProvider =>
 });
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<SkillService>();
+builder.Services.AddScoped<PortfolioUserService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserSessionService>();
 
@@ -168,3 +169,5 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(SkillSnap.Client._Imports).Assembly);
 
 app.Run();
+
+public partial class Program { }

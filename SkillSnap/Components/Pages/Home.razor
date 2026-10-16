@@ -1,5 +1,7 @@
 ﻿@page "/"
-@using SkillSnap.Client
+@using SkillSnap.Client.Models
+@using SkillSnap.Client.Services
+@inject PortfolioUserService PortfolioUserService
 
 <PageTitle>SkillSnap Preview</PageTitle>
 
@@ -8,7 +10,7 @@
 
 	<div class="row g-4">
 		<div class="col-12 col-lg-4">
-			<ProfileCard />
+			<ProfileCard Profile="profile" />
 		</div>
 		<div class="col-12 col-lg-8">
 			<ProjectList />
@@ -17,4 +19,13 @@
 			<SkillTags @rendermode="InteractiveWebAssembly" />
 		</div>
 	</div>
+
+	@code {
+		private PortfolioUser? profile;
+
+		protected override async Task OnInitializedAsync()
+		{
+			profile = (await PortfolioUserService.GetProfilesAsync()).FirstOrDefault();
+		}
+	}
 </div>

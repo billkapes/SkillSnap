@@ -24,4 +24,18 @@ public class SkillService
 
 		return await response.Content.ReadFromJsonAsync<Skill>();
 	}
+
+	public async Task<Skill?> UpdateSkillAsync(Skill skill)
+	{
+		using var response = await _httpClient.PutAsJsonAsync($"api/skills/{skill.Id}", skill);
+		response.EnsureSuccessStatusCode();
+
+		return await response.Content.ReadFromJsonAsync<Skill>();
+	}
+
+	public async Task DeleteSkillAsync(int id)
+	{
+		using var response = await _httpClient.DeleteAsync($"api/skills/{id}");
+		response.EnsureSuccessStatusCode();
+	}
 }
