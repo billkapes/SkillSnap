@@ -12,23 +12,32 @@ public class ProjectsController : ControllerBase
 {
 	private readonly SkillSnapContext _context;
 	private readonly IMemoryCache _cache;
+	private readonly ILogger<ProjectsController> _logger;
 
-	public ProjectsController(SkillSnapContext context, IMemoryCache cache)
+	public ProjectsController(
+		SkillSnapContext context,
+		IMemoryCache cache,
+		ILogger<ProjectsController> logger)
 	{
 		_context = context;
 		_cache = cache;
+		_logger = logger;
 	}
 
 	[HttpGet]
 	public async Task<ActionResult<IEnumerable<Project>>> GetProjects()
 	{
-		if (!_cache.TryGetValue("projects", out List<Project>? projects))
+		if (_cache.TryGetValue("projects", out List<Project>? projects))
 		{
-			projects = await _context.Projects
-				.AsNoTracking()
-				.ToListAsync();
-			_cache.Set("projects", projects, TimeSpan.FromMinutes(5));
+			_logger.LogInformation("Cache hit for projects; returning {ProjectCount} projects.", projects!.Count);
+			return Ok(projects);
 		}
+
+		_logger.LogInformation("Cache miss for projects; loading from the database.");
+		projects = await _context.Projects
+			.AsNoTracking()
+			.ToListAsync();
+		_cache.Set("projects", projects, TimeSpan.FromMinutes(5));
 		return Ok(projects);
 	}
 
@@ -53,7 +62,7 @@ public class ProjectsController : ControllerBase
 		_context.Projects.Add(project);
 		await _context.SaveChangesAsync();
 
-		_cache.Remove("projects");
+		InvalidateProjectsCache("create");
 		return CreatedAtAction(nameof(GetProject), new { id = project.Id }, project);
 	}
 
@@ -78,7 +87,7 @@ public class ProjectsController : ControllerBase
 		existingProject.PortfolioUserId = project.PortfolioUserId;
 
 		await _context.SaveChangesAsync();
-		_cache.Remove("projects");
+		InvalidateProjectsCache("update");
 		return Ok(existingProject);
 	}
 
@@ -94,7 +103,13 @@ public class ProjectsController : ControllerBase
 
 		_context.Projects.Remove(project);
 		await _context.SaveChangesAsync();
-		_cache.Remove("projects");
+		InvalidateProjectsCache("delete");
 		return NoContent();
+	}
+
+	private void InvalidateProjectsCache(string operation)
+	{
+		_cache.Remove("projects");
+		_logger.LogInformation("Invalidated cache for projects after {Operation}.", operation);
 	}
 }

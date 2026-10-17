@@ -12,23 +12,32 @@ public class SkillsController : ControllerBase
 {
 	private readonly SkillSnapContext _context;
 	private readonly IMemoryCache _cache;
+	private readonly ILogger<SkillsController> _logger;
 
-	public SkillsController(SkillSnapContext context, IMemoryCache cache)
+	public SkillsController(
+		SkillSnapContext context,
+		IMemoryCache cache,
+		ILogger<SkillsController> logger)
 	{
 		_context = context;
 		_cache = cache;
+		_logger = logger;
 	}
 
 	[HttpGet]
 	public async Task<ActionResult<IEnumerable<Skill>>> GetSkills()
 	{
-		if (!_cache.TryGetValue("skills", out List<Skill>? skills))
+		if (_cache.TryGetValue("skills", out List<Skill>? skills))
 		{
-			skills = await _context.Skills
-				.AsNoTracking()
-				.ToListAsync();
-			_cache.Set("skills", skills, TimeSpan.FromMinutes(5));
+			_logger.LogInformation("Cache hit for skills; returning {SkillCount} skills.", skills!.Count);
+			return Ok(skills);
 		}
+
+		_logger.LogInformation("Cache miss for skills; loading from the database.");
+		skills = await _context.Skills
+			.AsNoTracking()
+			.ToListAsync();
+		_cache.Set("skills", skills, TimeSpan.FromMinutes(5));
 		return Ok(skills);
 	}
 
@@ -53,7 +62,7 @@ public class SkillsController : ControllerBase
 		_context.Skills.Add(skill);
 		await _context.SaveChangesAsync();
 
-		_cache.Remove("skills");
+		InvalidateSkillsCache("create");
 		return CreatedAtAction(nameof(GetSkill), new { id = skill.Id }, skill);
 	}
 
@@ -77,7 +86,7 @@ public class SkillsController : ControllerBase
 		existingSkill.PortfolioUserId = skill.PortfolioUserId;
 
 		await _context.SaveChangesAsync();
-		_cache.Remove("skills");
+		InvalidateSkillsCache("update");
 		return Ok(existingSkill);
 	}
 
@@ -93,7 +102,13 @@ public class SkillsController : ControllerBase
 
 		_context.Skills.Remove(skill);
 		await _context.SaveChangesAsync();
-		_cache.Remove("skills");
+		InvalidateSkillsCache("delete");
 		return NoContent();
+	}
+
+	private void InvalidateSkillsCache(string operation)
+	{
+		_cache.Remove("skills");
+		_logger.LogInformation("Invalidated cache for skills after {Operation}.", operation);
 	}
 }

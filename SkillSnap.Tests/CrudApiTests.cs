@@ -1,10 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using SkillSnap.Client.Models;
 using Xunit;
 
@@ -44,11 +46,20 @@ public class CrudApiTests
 		Assert.Equal(HttpStatusCode.OK, profileUpdateResponse.StatusCode);
 		Assert.Equal("Updated profile", (await profileUpdateResponse.Content.ReadFromJsonAsync<PortfolioUser>())?.Name);
 
+		await client.GetFromJsonAsync<List<Project>>("api/projects");
+		await client.GetFromJsonAsync<List<Project>>("api/projects");
+		AssertCacheLog(factory, "Cache miss for projects");
+		AssertCacheLog(factory, "Cache hit for projects");
+
 		var project = await CreateProjectAsync(client, profile.Id, "Initial project");
 		var projectReadResponse = await client.GetAsync($"api/projects/{project.Id}");
 		Assert.Equal(HttpStatusCode.OK, projectReadResponse.StatusCode);
 		var projectsBeforeUpdate = await client.GetFromJsonAsync<List<Project>>("api/projects");
 		Assert.Contains(projectsBeforeUpdate!, item => item.Id == project.Id);
+		AssertCacheSequence(factory, "Invalidated cache for projects after create", "Cache miss for projects");
+		await client.GetFromJsonAsync<List<Project>>("api/projects");
+		AssertCacheLog(factory, "Cache hit for projects");
+
 		var projectUpdateResponse = await client.PutAsJsonAsync($"api/projects/{project.Id}", new Project
 		{
 			Title = "Updated project",
@@ -60,12 +71,22 @@ public class CrudApiTests
 		Assert.Equal("Updated project", (await projectUpdateResponse.Content.ReadFromJsonAsync<Project>())?.Title);
 		var projectsAfterUpdate = await client.GetFromJsonAsync<List<Project>>("api/projects");
 		Assert.Contains(projectsAfterUpdate!, item => item.Id == project.Id && item.Title == "Updated project");
+		AssertCacheSequence(factory, "Invalidated cache for projects after update", "Cache miss for projects");
+
+		await client.GetFromJsonAsync<List<Skill>>("api/skills");
+		await client.GetFromJsonAsync<List<Skill>>("api/skills");
+		AssertCacheLog(factory, "Cache miss for skills");
+		AssertCacheLog(factory, "Cache hit for skills");
 
 		var skill = await CreateSkillAsync(client, profile.Id, "Initial skill");
 		var skillReadResponse = await client.GetAsync($"api/skills/{skill.Id}");
 		Assert.Equal(HttpStatusCode.OK, skillReadResponse.StatusCode);
 		var skillsBeforeUpdate = await client.GetFromJsonAsync<List<Skill>>("api/skills");
 		Assert.Contains(skillsBeforeUpdate!, item => item.Id == skill.Id);
+		AssertCacheSequence(factory, "Invalidated cache for skills after create", "Cache miss for skills");
+		await client.GetFromJsonAsync<List<Skill>>("api/skills");
+		AssertCacheLog(factory, "Cache hit for skills");
+
 		var skillUpdateResponse = await client.PutAsJsonAsync($"api/skills/{skill.Id}", new Skill
 		{
 			Name = "Updated skill",
@@ -76,15 +97,18 @@ public class CrudApiTests
 		Assert.Equal("Updated skill", (await skillUpdateResponse.Content.ReadFromJsonAsync<Skill>())?.Name);
 		var skillsAfterUpdate = await client.GetFromJsonAsync<List<Skill>>("api/skills");
 		Assert.Contains(skillsAfterUpdate!, item => item.Id == skill.Id && item.Name == "Updated skill");
+		AssertCacheSequence(factory, "Invalidated cache for skills after update", "Cache miss for skills");
 
 		Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"api/projects/{project.Id}")).StatusCode);
 		Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"api/projects/{project.Id}")).StatusCode);
 		Assert.DoesNotContain(await client.GetFromJsonAsync<List<Project>>("api/projects") ?? [],
 			item => item.Id == project.Id);
+		AssertCacheSequence(factory, "Invalidated cache for projects after delete", "Cache miss for projects");
 		Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"api/skills/{skill.Id}")).StatusCode);
 		Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"api/skills/{skill.Id}")).StatusCode);
 		Assert.DoesNotContain(await client.GetFromJsonAsync<List<Skill>>("api/skills") ?? [],
 			item => item.Id == skill.Id);
+		AssertCacheSequence(factory, "Invalidated cache for skills after delete", "Cache miss for skills");
 
 		var cascadingProject = await CreateProjectAsync(client, profile.Id, "Cascade project");
 		var cascadingSkill = await CreateSkillAsync(client, profile.Id, "Cascade skill");
@@ -99,6 +123,26 @@ public class CrudApiTests
 			item => item.Id == cascadingProject.Id);
 		Assert.DoesNotContain(await client.GetFromJsonAsync<List<Skill>>("api/skills") ?? [],
 			item => item.Id == cascadingSkill.Id);
+		AssertCacheSequence(factory, "Invalidated cache for projects and skills after profile deletion",
+			"Cache miss for projects");
+		AssertCacheSequence(factory, "Invalidated cache for projects and skills after profile deletion",
+			"Cache miss for skills");
+	}
+
+	private static void AssertCacheLog(CrudApiFactory factory, string expectedMessage)
+	{
+		Assert.Contains(factory.CacheLogs.Messages,
+			message => message.Contains(expectedMessage, StringComparison.Ordinal));
+	}
+
+	private static void AssertCacheSequence(CrudApiFactory factory, string firstMessage, string nextMessage)
+	{
+		var messages = factory.CacheLogs.Messages;
+		var firstIndex = Array.FindLastIndex(messages,
+			message => message.Contains(firstMessage, StringComparison.Ordinal));
+		Assert.True(firstIndex >= 0, $"Expected cache log '{firstMessage}'.");
+		Assert.Contains(messages.Skip(firstIndex + 1),
+			message => message.Contains(nextMessage, StringComparison.Ordinal));
 	}
 
 	private static async Task<Project> CreateProjectAsync(HttpClient client, int profileId, string title)
@@ -132,6 +176,8 @@ internal sealed class CrudApiFactory : WebApplicationFactory<Program>
 	private readonly string? _originalConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
 	private readonly string? _originalJwtKey = Environment.GetEnvironmentVariable("Jwt__Key");
 
+	public CacheLogProvider CacheLogs { get; } = new();
+
 	public CrudApiFactory()
 	{
 		Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", $"Data Source={_databasePath};Pooling=False");
@@ -148,6 +194,7 @@ internal sealed class CrudApiFactory : WebApplicationFactory<Program>
 	protected override void ConfigureWebHost(IWebHostBuilder builder)
 	{
 		builder.UseEnvironment("Testing");
+		builder.ConfigureLogging(logging => logging.AddProvider(CacheLogs));
 		builder.ConfigureTestServices(services =>
 		{
 			services.AddAuthentication(options =>
@@ -169,6 +216,46 @@ internal sealed class CrudApiFactory : WebApplicationFactory<Program>
 			if (File.Exists(_databasePath))
 			{
 				File.Delete(_databasePath);
+			}
+		}
+	}
+}
+
+internal sealed class CacheLogProvider : ILoggerProvider
+{
+	private readonly ConcurrentQueue<string> _messages = new();
+
+	public string[] Messages => _messages.ToArray();
+
+	public ILogger CreateLogger(string categoryName) => new CacheTestLogger(_messages);
+
+	public void Dispose()
+	{
+	}
+
+	private sealed class CacheTestLogger : ILogger
+	{
+		private readonly ConcurrentQueue<string> _messages;
+
+		public CacheTestLogger(ConcurrentQueue<string> messages)
+		{
+			_messages = messages;
+		}
+
+		public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+		public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Information;
+
+		public void Log<TState>(
+			LogLevel logLevel,
+			EventId eventId,
+			TState state,
+			Exception? exception,
+			Func<TState, Exception?, string> formatter)
+		{
+			if (IsEnabled(logLevel))
+			{
+				_messages.Enqueue(formatter(state, exception));
 			}
 		}
 	}

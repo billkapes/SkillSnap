@@ -12,11 +12,16 @@ public class ProfilesController : ControllerBase
 {
 	private readonly SkillSnapContext _context;
 	private readonly IMemoryCache _cache;
+	private readonly ILogger<ProfilesController> _logger;
 
-	public ProfilesController(SkillSnapContext context, IMemoryCache cache)
+	public ProfilesController(
+		SkillSnapContext context,
+		IMemoryCache cache,
+		ILogger<ProfilesController> logger)
 	{
 		_context = context;
 		_cache = cache;
+		_logger = logger;
 	}
 
 	[HttpGet]
@@ -77,8 +82,14 @@ public class ProfilesController : ControllerBase
 
 		_context.PortfolioUsers.Remove(profile);
 		await _context.SaveChangesAsync();
+		InvalidateRelatedCaches();
+		return NoContent();
+	}
+
+	private void InvalidateRelatedCaches()
+	{
 		_cache.Remove("projects");
 		_cache.Remove("skills");
-		return NoContent();
+		_logger.LogInformation("Invalidated cache for projects and skills after profile deletion.");
 	}
 }
