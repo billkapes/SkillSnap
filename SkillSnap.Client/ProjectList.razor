@@ -1,34 +1,66 @@
 @using SkillSnap.Client.Models
 @using SkillSnap.Client.Services
-<section class="project-list">
-    <h2 class="h4">Projects</h2>
 
-    <div class="list-group">
-        @foreach (var project in projects)
-        {
-            <article class="list-group-item">
-                <h3 class="h5 mb-1">@project.Title</h3>
-                <p class="mb-0 text-muted">@project.Description</p>
-            </article>
-        }
-    </div>
+<section class="project-list" id="projects" aria-labelledby="projects-title">
+    <header class="section-heading">
+        <div>
+            <span class="section-kicker">SELECTED WORK</span>
+            <h2 id="projects-title">Projects</h2>
+        </div>
+        <span class="section-count">@projects.Count.ToString("00") / WORKS</span>
+    </header>
+
+    @if (projects.Count == 0)
+    {
+        <p class="empty-state">Projects will show up here as soon as there’s something to share.</p>
+    }
+    else
+    {
+        <div class="project-grid">
+            @for (var index = 0; index < projects.Count; index++)
+            {
+                var project = projects[index];
+                <article class="project-card" @key="project.Id">
+                    <div class="project-art" aria-hidden="true">
+                        @if (!string.IsNullOrWhiteSpace(project.ImageUrl) && !_failedImageIds.Contains(project.Id))
+                        {
+                            <img class="project-art-image" src="@project.ImageUrl" alt="" loading="lazy"
+                                 @onerror="() => HandleImageError(project.Id)" />
+                        }
+                        else
+                        {
+                            <span class="project-art-mark">@ProjectInitial(project.Title)</span>
+                        }
+                        <span class="project-number">PROJECT @((index + 1).ToString("00"))</span>
+                    </div>
+                    <div class="project-card-body">
+                        <h3>@project.Title</h3>
+                        @if (!string.IsNullOrWhiteSpace(project.Description))
+                        {
+                            <p>@project.Description</p>
+                        }
+                    </div>
+                </article>
+            }
+        </div>
+    }
 </section>
 
 @inject ProjectService ProjectService
 @code {
     private List<Project> projects = [];
+    private readonly HashSet<int> _failedImageIds = [];
 
     protected override async Task OnInitializedAsync()
     {
         projects = await ProjectService.GetProjectsAsync();
     }
 
-    @* private readonly List<ProjectPlaceholder> Projects =
-    [
-        new("SkillSnap", "A portfolio for sharing skills and projects."),
-        new("TaskFlow", "A lightweight planner for focused teams."),
-        new("GreenCart", "A simple shopping experience for local produce.")
-    ];
+    private static string ProjectInitial(string title) =>
+        string.IsNullOrWhiteSpace(title) ? "↗" : title.Trim()[0].ToString().ToUpperInvariant();
 
-    private sealed record ProjectPlaceholder(string Name, string Description); *@
+    private void HandleImageError(int projectId)
+    {
+        _failedImageIds.Add(projectId);
+    }
 }

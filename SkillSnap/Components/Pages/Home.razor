@@ -1,31 +1,30 @@
-﻿@page "/"
+@page "/"
 @using SkillSnap.Client.Models
 @using SkillSnap.Client.Services
 @inject PortfolioUserService PortfolioUserService
 
-<PageTitle>SkillSnap Preview</PageTitle>
+<PageTitle>SkillSnap | Portfolio</PageTitle>
 
-<div class="container py-4">
-	<h1 class="mb-4">SkillSnap Preview</h1>
+<div class="portfolio-home">
+    <header class="portfolio-heading">
+        <div>
+            <span class="eyebrow">A little about what I do</span>
+            <h1>Good work deserves a place to land.</h1>
+            <p>A snapshot of the things I make, the skills I use, and the ideas I’m working on.</p>
+        </div>
+        <span class="portfolio-index">PORTFOLIO&nbsp; · &nbsp;001</span>
+    </header>
 
-	<div class="row g-4">
-		<div class="col-12 col-lg-4">
-			<ProfileCard Profile="profile" />
-		</div>
-		<div class="col-12 col-lg-8">
-			<ProjectList />
-		</div>
-		<div class="col-12">
-			<SkillTags @rendermode="InteractiveWebAssembly" />
-		</div>
-	</div>
-
-	@code {
-		private PortfolioUser? profile;
-
-		protected override async Task OnInitializedAsync()
-		{
-			profile = (await PortfolioUserService.GetProfilesAsync()).FirstOrDefault();
-		}
-	}
+    <ProfileCard Profile="profile" @rendermode="InteractiveWebAssembly" />
+    <ProjectList @rendermode="InteractiveWebAssembly" />
+    <SkillTags @rendermode="InteractiveWebAssembly" />
 </div>
+
+@code {
+    private PortfolioUser? profile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        profile = (await PortfolioUserService.GetProfilesAsync()).FirstOrDefault();
+    }
+}

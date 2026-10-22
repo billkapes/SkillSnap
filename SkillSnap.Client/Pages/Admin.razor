@@ -1,5 +1,5 @@
 @page "/admin"
-@rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
+@rendermode InteractiveWebAssembly
 @using SkillSnap.Client.Models
 @using SkillSnap.Client.Services
 @inject AuthService AuthService
@@ -10,8 +10,9 @@
 
 <PageTitle>Admin | SkillSnap</PageTitle>
 
-<main class="container py-4">
-    <h1 class="mb-4">Admin CRUD</h1>
+<main class="admin-page">
+    <span class="eyebrow">PORTFOLIO CONTROL ROOM</span>
+    <h1 class="mb-4">Manage your work.</h1>
 
     @if (_isCheckingAccess || _isLoading)
     {
@@ -275,8 +276,13 @@
     private string? _errorMessage;
     private string? _successMessage;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender)
+        {
+            return;
+        }
+
         try
         {
             await AuthService.InitializeAsync();
@@ -289,24 +295,24 @@
             _isCheckingAccess = false;
         }
 
-        if (!_isAdmin)
+        if (_isAdmin)
         {
-            return;
+            _isLoading = true;
+            try
+            {
+                await LoadDataAsync();
+            }
+            catch (HttpRequestException exception)
+            {
+                SetRequestError(exception);
+            }
+            finally
+            {
+                _isLoading = false;
+            }
         }
 
-        _isLoading = true;
-        try
-        {
-            await LoadDataAsync();
-        }
-        catch (HttpRequestException exception)
-        {
-            SetRequestError(exception);
-        }
-        finally
-        {
-            _isLoading = false;
-        }
+        StateHasChanged();
     }
 
     private async Task LoadDataAsync()
